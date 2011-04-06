@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.forms.formsets import (TOTAL_FORM_COUNT, INITIAL_FORM_COUNT,
-                                   MAX_NUM_FORM_COUNT,
+from django.forms.formsets import (TOTAL_FORM_COUNT,
                                    BaseFormSet as DjangoBaseFormSet)
 from django.forms.models import BaseModelFormSet as DjangoBaseModelFormSet
 from django.forms.formsets import ManagementForm
@@ -16,7 +15,7 @@ class BaseFormSet(DjangoBaseFormSet):
                 self._non_form_errors = err
                 return 0
         else:
-            return super(DjangoBaseFormSet, self).total_form_count()
+            return DjangoBaseFormSet.total_form_count(self)
 
 
 class BaseModelFormSet(DjangoBaseModelFormSet):
@@ -29,7 +28,7 @@ class BaseModelFormSet(DjangoBaseModelFormSet):
                 self._non_form_errors = err
                 return 0
         else:
-            return super(DjangoBaseModelFormSet, self).total_form_count()
+            return DjangoBaseModelFormSet.total_form_count(self)
 
     # Handling of invalid data on form construction
     def _construct_forms(self):
