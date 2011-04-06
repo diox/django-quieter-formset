@@ -5,6 +5,9 @@ from django.forms.models import BaseModelFormSet as DjangoBaseModelFormSet
 from django.forms.formsets import ManagementForm
 
 
+__all__ = ['BaseFormSet', 'BaseModelFormSet']
+
+
 class BaseFormSet(DjangoBaseFormSet):
     # Quieter handling for mangled management forms
     def total_form_count(self):
