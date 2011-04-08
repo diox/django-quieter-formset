@@ -11,6 +11,10 @@ Usage::
     modelformset_factory(User, formset=BaseModelFormSet)
     formset_factory(ArticleForm, formset=BaseFormSet)
 
+Errors will be pushed into non_form_errors. Make sure you show those in your form.
+Because the management form breaks, we don't know information about the form and
+so form data will be lost and the form breaks. However it was going to do this anyway.
+
 License: BSD
 
 Author: Andy McKay amckay@mozilla.com
