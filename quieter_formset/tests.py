@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import unittest
+import urllib
 
 from django.contrib.admin.models import User
 from django.forms.formsets import formset_factory
 from django.forms.models import modelformset_factory
+from django.http import QueryDict
 from django import forms
 
 
@@ -84,8 +86,27 @@ class TestModelManagement(unittest.TestCase, Management):
         data = self.data.copy()
         data.update({'form-0-id':self.user.pk,
                      'form-TOTAL_FORMS': 1})
-        list(User.objects.all())
         self.formset = modelformset_factory(User, formset=BaseModelFormSet)
         self.formset._queryset = User.objects.none()
+        fs = self.formset(data)
+        assert not fs.is_valid()
+
+    def test_key(self):
+        data = self.data.copy()
+        data.update({'form-0-id':self.user.pk,
+                     'form-TOTAL_FORMS': 2,
+                     'form-INITIAL_FORMS': 2})
+        self.formset = modelformset_factory(User, formset=BaseModelFormSet)
+        fs = self.formset(data)
+        assert not fs.is_valid()
+
+    def test_multivaluedictkey(self):
+        # https://bugzilla.mozilla.org/show_bug.cgi?id=653147
+        data = self.data.copy()
+        data.update({'form-0-id':[self.user.pk],
+                     'form-TOTAL_FORMS': 2,
+                     'form-INITIAL_FORMS': 2})
+        data = QueryDict(urllib.urlencode(data))
+        self.formset = modelformset_factory(User, formset=BaseModelFormSet)
         fs = self.formset(data)
         assert not fs.is_valid()

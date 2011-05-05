@@ -3,6 +3,7 @@ from django.forms.formsets import (TOTAL_FORM_COUNT, INITIAL_FORM_COUNT,
                                    BaseFormSet as DjangoBaseFormSet)
 from django.forms.models import BaseModelFormSet as DjangoBaseModelFormSet
 from django.forms.formsets import ManagementForm
+from django.utils.datastructures import MultiValueDictKeyError
 
 
 __all__ = ['BaseFormSet', 'BaseModelFormSet']
@@ -61,6 +62,12 @@ class BaseModelFormSet(QuieterBaseFormset, DjangoBaseModelFormSet):
         for i in xrange(self.total_form_count()):
             try:
                 self.forms.append(self._construct_form(i))
+            except MultiValueDictKeyError, err:
+                self._non_form_errors = err
+                self.forms.append(self._construct_form(self.initial_form_count))
+            except KeyError, err:
+                self._non_form_errors = u'Key not found on form: %s' % err
+                self.forms.append(self._construct_form(self.initial_form_count))
             except (ValueError, IndexError), err:
                 self._non_form_errors = err
                 self.forms.append(self._construct_form(self.initial_form_count))
