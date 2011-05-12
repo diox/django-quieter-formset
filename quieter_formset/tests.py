@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 import unittest
 import urllib
 
@@ -70,7 +71,9 @@ class TestModelManagement(unittest.TestCase, Management):
         data.update({'form-0-id':'asdawd'})
         self.formset = modelformset_factory(User, formset=BaseModelFormSet)
         fs = self.formset(data, queryset=User.objects.all())
-        assert len(fs.forms) == 1
+        # form 0 has been discarded
+        assert len(fs.forms) == 0
+        assert not fs.is_valid()
 
     def test_one_bad_apple(self):
         data = self.data.copy()
@@ -78,17 +81,20 @@ class TestModelManagement(unittest.TestCase, Management):
                      'form-TOTAL_FORMS': 2})
         self.formset = modelformset_factory(User, formset=BaseModelFormSet)
         fs = self.formset(data, queryset=User.objects.all())
-        assert len(fs.forms) == 2
+        # form 0 has been discarded
+        assert len(fs.forms) == 1
+        assert not fs.is_valid()
 
     def test_one_non_existant_apple(self):
         # Test for https://bugzilla.mozilla.org/show_bug.cgi?id=614108
         # and https://bugzilla.mozilla.org/show_bug.cgi?id=625603
         data = self.data.copy()
-        data.update({'form-0-id':self.user.pk,
-                     'form-TOTAL_FORMS': 1})
+        data.update({'form-0-id':self.user.pk,})
         self.formset = modelformset_factory(User, formset=BaseModelFormSet)
         self.formset._queryset = User.objects.none()
         fs = self.formset(data)
+        # form 0 has been discarded
+        assert len(fs.forms) == 0
         assert not fs.is_valid()
 
     def test_key(self):
@@ -98,6 +104,8 @@ class TestModelManagement(unittest.TestCase, Management):
                      'form-INITIAL_FORMS': 2})
         self.formset = modelformset_factory(User, formset=BaseModelFormSet)
         fs = self.formset(data)
+        # only one form, form 2 doesn't exist
+        assert len(fs.forms) == 1
         assert not fs.is_valid()
 
     def test_multivaluedictkey(self):
@@ -109,4 +117,39 @@ class TestModelManagement(unittest.TestCase, Management):
         data = QueryDict(urllib.urlencode(data))
         self.formset = modelformset_factory(User, formset=BaseModelFormSet)
         fs = self.formset(data)
+        # form two doesn't exist
+        # form one points to an object that doesn't exist
+        assert len(fs.forms) == 0
         assert not fs.is_valid()
+
+    def test_clean(self):
+        data = self.data.copy()
+        data.update({'form-0-id':'asd',})
+        self.formset = modelformset_factory(User, formset=BaseModelFormSet)
+        fs = self.formset(data)
+        assert fs._non_form_errors
+        assert not fs.is_valid()
+        fs._non_form_errors = None
+        # without our non_form_errors set, this gets raised
+        self.assertRaises(IndexError, fs.full_clean)
+
+    def test_almost_good(self):
+        data = self.data.copy()
+        data.update({'form-0-id':self.user.pk,})
+        self.formset = modelformset_factory(User, formset=BaseModelFormSet)
+        fs = self.formset(data)
+        assert not fs._non_form_errors
+        assert fs.errors
+        assert not fs.is_valid()
+
+    def test_really_good(self):
+        data = self.data.copy()
+        data.update({'form-0-id':self.user.pk,
+                     'form-0-username':'r2d2',
+                     'form-0-password':'c3p0',
+                     'form-0-last_login':datetime.now(),
+                     'form-0-date_joined':datetime.now()})
+        self.formset = modelformset_factory(User, formset=BaseModelFormSet)
+        fs = self.formset(data)
+        assert not fs._non_form_errors
+        assert fs.is_valid()

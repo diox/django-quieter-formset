@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.forms.formsets import (TOTAL_FORM_COUNT, INITIAL_FORM_COUNT,
                                    MAX_NUM_FORM_COUNT,
                                    BaseFormSet as DjangoBaseFormSet)
@@ -64,10 +65,41 @@ class BaseModelFormSet(QuieterBaseFormset, DjangoBaseModelFormSet):
                 self.forms.append(self._construct_form(i))
             except MultiValueDictKeyError, err:
                 self._non_form_errors = err
-                self.forms.append(self._construct_form(self.initial_form_count))
             except KeyError, err:
                 self._non_form_errors = u'Key not found on form: %s' % err
-                self.forms.append(self._construct_form(self.initial_form_count))
             except (ValueError, IndexError), err:
                 self._non_form_errors = err
-                self.forms.append(self._construct_form(self.initial_form_count))
+
+    def full_clean(self):
+        """
+        Cleans all of self.data and populates self._errors. Copes with forms
+        that failed to be constructed, as long as non_form_errors has been
+        set.
+        """
+        self._errors = []
+        if not self.is_bound: # Stop further processing.
+            return
+        for i in range(0, self.total_form_count()):
+            try:
+                form = self.forms[i]
+                self._errors.append(form.errors)
+            except IndexError:
+                # If the form is not there, but there's nothing in non-form
+                # errors, that's bad.
+                if not self._non_form_errors:
+                    raise
+
+        # Give self.clean() a chance to do cross-form validation.
+        try:
+            self.clean()
+        except ValidationError, e:
+            self._non_form_errors = self.error_class(e.messages)
+
+    def is_valid(self):
+        """
+        Returns True if form.errors is empty for every form in self.forms
+        or there are non_form_errors.
+        """
+        if self._non_form_errors:
+            return False
+        return super(BaseModelFormSet, self).is_valid()
