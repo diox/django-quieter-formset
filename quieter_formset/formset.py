@@ -33,6 +33,31 @@ class QuieterBaseFormset:
         return form
     management_form = property(_management_form)
 
+    def full_clean(self):
+        """
+        Cleans all of self.data and populates self._errors. Copes with forms
+        that failed to be constructed, as long as non_form_errors has been
+        set.
+        """
+        self._errors = []
+        if not self.is_bound: # Stop further processing.
+            return
+        for i in range(0, self.total_form_count()):
+            try:
+                form = self.forms[i]
+                self._errors.append(form.errors)
+            except IndexError:
+                # If the form is not there, but there's nothing in non-form
+                # errors, that's bad.
+                if not self._non_form_errors:
+                    raise
+
+        # Give self.clean() a chance to do cross-form validation.
+        try:
+            self.clean()
+        except ValidationError, e:
+            self._non_form_errors = self.error_class(e.messages)
+
 
 class BaseFormSet(QuieterBaseFormset, DjangoBaseFormSet):
     # Quieter handling for mangled management forms
@@ -44,6 +69,15 @@ class BaseFormSet(QuieterBaseFormset, DjangoBaseFormSet):
                 return 0
         else:
             return DjangoBaseFormSet.total_form_count(self)
+
+    def is_valid(self):
+        """
+        Returns True if form.errors is empty for every form in self.forms
+        or there are non_form_errors.
+        """
+        if self._non_form_errors:
+            return False
+        return super(BaseFormSet, self).is_valid()
 
 
 class BaseModelFormSet(QuieterBaseFormset, DjangoBaseModelFormSet):
@@ -69,31 +103,6 @@ class BaseModelFormSet(QuieterBaseFormset, DjangoBaseModelFormSet):
                 self._non_form_errors = u'Key not found on form: %s' % err
             except (ValueError, IndexError), err:
                 self._non_form_errors = err
-
-    def full_clean(self):
-        """
-        Cleans all of self.data and populates self._errors. Copes with forms
-        that failed to be constructed, as long as non_form_errors has been
-        set.
-        """
-        self._errors = []
-        if not self.is_bound: # Stop further processing.
-            return
-        for i in range(0, self.total_form_count()):
-            try:
-                form = self.forms[i]
-                self._errors.append(form.errors)
-            except IndexError:
-                # If the form is not there, but there's nothing in non-form
-                # errors, that's bad.
-                if not self._non_form_errors:
-                    raise
-
-        # Give self.clean() a chance to do cross-form validation.
-        try:
-            self.clean()
-        except ValidationError, e:
-            self._non_form_errors = self.error_class(e.messages)
 
     def is_valid(self):
         """

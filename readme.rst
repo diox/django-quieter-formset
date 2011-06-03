@@ -17,4 +17,4 @@ so form data will be lost and the form breaks. However it was going to do this a
 
 License: BSD
 
-Author: Andy McKay amckay@mozilla.com
+Author: Andy McKay, amckay@mozilla.com
