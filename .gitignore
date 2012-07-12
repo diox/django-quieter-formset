@@ -1,0 +1,10 @@
+.DS_Store
+*.pyc
+tags
+TAGS
+*.swp
+*.egg-info
+.#*
+*~
+.virtualenvs
+.ipython
