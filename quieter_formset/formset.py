@@ -4,6 +4,7 @@ from django.forms.formsets import (TOTAL_FORM_COUNT, INITIAL_FORM_COUNT,
                                    BaseFormSet as DjangoBaseFormSet)
 from django.forms.models import BaseModelFormSet as DjangoBaseModelFormSet
 from django.forms.formsets import ManagementForm
+from django.utils.functional import cached_property
 from django.utils.datastructures import MultiValueDictKeyError
 
 
@@ -40,7 +41,6 @@ class QuieterBaseFormset:
         set.
         """
         self._errors = []
-        self._non_form_errors = self.error_class()
         if not self.is_bound: # Stop further processing.
             return
         for i in range(0, self.total_form_count()):
@@ -93,17 +93,19 @@ class BaseModelFormSet(QuieterBaseFormset, DjangoBaseModelFormSet):
             return DjangoBaseModelFormSet.total_form_count(self)
 
     # Handling of invalid data on form construction
-    def _construct_forms(self):
-        self.forms = []
+    @cached_property
+    def forms(self):
+        forms = []
         for i in xrange(self.total_form_count()):
             try:
-                self.forms.append(self._construct_form(i))
+                forms.append(self._construct_form(i))
             except MultiValueDictKeyError, err:
                 self._non_form_errors = err
             except KeyError, err:
                 self._non_form_errors = u'Key not found on form: %s' % err
             except (ValueError, IndexError), err:
                 self._non_form_errors = err
+        return forms
 
     def is_valid(self):
         """
