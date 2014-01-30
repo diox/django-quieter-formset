@@ -41,6 +41,7 @@ class QuieterBaseFormset:
         set.
         """
         self._errors = []
+        self._non_form_errors = self.error_class()
         if not self.is_bound: # Stop further processing.
             return
         for i in range(0, self.total_form_count()):
@@ -64,19 +65,15 @@ class BaseFormSet(QuieterBaseFormset, DjangoBaseFormSet):
     # Quieter handling for mangled management forms
     def total_form_count(self):
         if self.data or self.files:
-            if self.management_form.is_valid() and hasattr(self.management_form, 'cleaned_data'):
-                return self.management_form.cleaned_data[TOTAL_FORM_COUNT]
-            else:
-                return 0
+            cleaned_data = getattr(self.management_form, 'cleaned_data', {})
+            return cleaned_data.get(TOTAL_FORM_COUNT, 0)
         else:
             return DjangoBaseFormSet.total_form_count(self)
 
     def initial_form_count(self):
         if self.data or self.files:
-            if self.management_form.is_valid() and hasattr(self.management_form, 'cleaned_data'):
-                return self.management_form.cleaned_data[INITIAL_FORM_COUNT]
-            else:
-                return 0
+            cleaned_data = getattr(self.management_form, 'cleaned_data', {})
+            return cleaned_data.get(INITIAL_FORM_COUNT, 0)
         else:
             return DjangoBaseFormSet.initial_form_count(self)
 
@@ -94,19 +91,15 @@ class BaseModelFormSet(QuieterBaseFormset, DjangoBaseModelFormSet):
     # Quieter handling for mangled management forms
     def total_form_count(self):
         if self.data or self.files:
-            if self.management_form.is_valid() and hasattr(self.management_form, 'cleaned_data'):
-                return self.management_form.cleaned_data[TOTAL_FORM_COUNT]
-            else:
-                return 0
+            cleaned_data = getattr(self.management_form, 'cleaned_data', {})
+            return cleaned_data.get(TOTAL_FORM_COUNT, 0)
         else:
             return DjangoBaseModelFormSet.total_form_count(self)
 
     def initial_form_count(self):
         if self.data or self.files:
-            if self.management_form.is_valid() and hasattr(self.management_form, 'cleaned_data'):
-                return self.management_form.cleaned_data[INITIAL_FORM_COUNT]
-            else:
-                return 0
+            cleaned_data = getattr(self.management_form, 'cleaned_data', {})
+            return cleaned_data.get(INITIAL_FORM_COUNT, 0)
         else:
             return DjangoBaseModelFormSet.initial_form_count(self)
 
